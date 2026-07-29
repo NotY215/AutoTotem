@@ -1,63 +1,77 @@
-🛡️ Auto Totem - Automatic Off-Hand Totem Swapper
+# 🛡️ Auto Totem
 
-Auto Totem is a simple yet essential client-side utility mod for Fabric that automatically moves a Totem of Undying into your off-hand when you need it most, based on your health or a custom keybind. Never panic-swap again!
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Version](https://img.shields.io/badge/Version-1.3-red.svg)](https://github.com/NotY215/AutoTotem)
+[![Minecraft](https://img.shields.io/badge/Minecraft-26.1.2-green.svg)](https://minecraft.net)
+[![Fabric](https://img.shields.io/badge/Fabric-0.19.3-yellow.svg)](https://fabricmc.net)
+[![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org)
+[![Modrinth](https://img.shields.io/badge/Modrinth-NotY215-00AF5C.svg)](https://modrinth.com/user/NotY215)
 
-✨ Features
+**Automatic Off-Hand Totem Swapper for Fabric**
 
-This mod provides two primary ways to manage your Totems:
+Auto Totem is a lightweight client-side utility mod that automatically moves a Totem of Undying into your off-hand when your health is critically low, and swaps it back when you recover.  
+A simple keybind lets you enable or disable the feature on the fly.
 
-1. Health-Based Auto-Swap (Critical Survival)
+---
 
-When enabled, the mod continuously monitors your health and takes action when you are in critical danger:
+## ✨ Features
 
-Auto Swap In: If your health drops to 2 hearts (4.0 health points) or less, the mod will instantly search your inventory for the first available Totem of Undying and move it to your off-hand.
+### 1. Health-Based Auto-Swap
+When the feature is **enabled**:
 
-Auto Swap Back: If your health recovers to over 5.5 hearts (11.0 health points), the Totem will automatically be swapped back into the inventory slot where the original off-hand item was stored.
+| Condition | Action |
+|-----------|--------|
+| Health ≤ **2 hearts** (4.0 HP) | Instantly finds the first Totem in your inventory and moves it to the off-hand |
+| Health > **5 hearts** (10.0 HP) | Swaps the Totem back to the exact slot it came from |
 
-2. Manual Keybind Swap (Tactical Control)
+### 2. Toggle Keybind
+- Default key: **V**
+- Pressing the key **enables / disables** the automatic swapping
+- A clear status message appears on the action bar:
+    - `AutoTotem: Enabled`
+    - `AutoTotem: Disabled`
 
-The mod includes a customizable keybind for quick, manual swaps:
+You can change the key in  
+**Options → Controls → Key Binds → AutoTotem**
 
-Keybind Action: Pressing the key will either swap a Totem into your off-hand (if one is available) or swap the existing Totem out, returning the previous item to its original inventory slot.
+---
 
-⚙️ Usage & Keybind Configuration
+## 📦 Installation
 
-Before using the mod, you should configure your preferred key:
+1. Install **Fabric Loader** for Minecraft **26.1.2**
+2. Install **Fabric API**
+3. Download the latest `AutoTotem.jar`
+4. Place it in your `.minecraft/mods` folder
+5. Launch the game with the Fabric profile
 
-Start Minecraft with the mod installed.
+> This is a **client-side only** mod. It does not need to be installed on the server.
 
-Go to Options > Controls > Key Binds.
+---
 
-Scroll down to the AutoTotem category.
+## ⚙️ Configuration
 
-Change the key for "Toggle Totem Off-hand" (default is V) to your liking.
+Currently there is no config file.  
+All behaviour is controlled by the keybind and the built-in health thresholds (2 hearts / 5 hearts).
 
-Important Notes:
+---
 
-Swap Back Priority: The mod remembers where the item that was displaced by the Totem came from. It will only swap back to that exact slot.
+## 📜 Technical Details
 
-Manual Override: If you manually trigger the keybind, the automatic swap-back logic will be temporarily disabled until you either press the keybind again to swap the Totem out, or until the game state resets (e.g., player dies).
+| Item              | Value                  |
+|-------------------|------------------------|
+| Mod ID            | `autototem`            |
+| Package           | `com.noty.auto`        |
+| Minecraft         | 26.1.2                 |
+| Fabric Loader     | ≥ 0.19.3               |
+| Fabric API        | 0.155.2+26.1.2         |
+| Java              | 25                     |
+| License           | GPL-3.0                |
 
-📦 Installation
+---
 
-This is a client-side Fabric mod and must be installed in your local Minecraft instance.
+## 📄 License
 
-Install Fabric Loader: Ensure you have the Fabric Loader installed for Minecraft 1.21.
+This project is licensed under the **GNU General Public License v3.0**.  
+See the [LICENSE](LICENSE) file for details.
 
-Download Mod: Download the latest version of AutoTotem.jar from the release page.
-
-Move to Mods Folder: Place the downloaded .jar file into your Minecraft mods folder.
-
-Run: Start Minecraft using the Fabric profile.
-
-📜 Technical Details
-
-Mod ID: autototem
-
-Package: com.noty.auto
-
-Development Environment: Fabric 1.21
-
-📄 License
-
-This mod is licensed under the MIT License.
+---
