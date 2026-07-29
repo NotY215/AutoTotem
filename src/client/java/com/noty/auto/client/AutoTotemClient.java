@@ -1,39 +1,41 @@
 package com.noty.auto.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.noty.auto.AutoTotem;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Items;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.util.Identifier; // <-- NEW IMPORT
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
 
 /**
  * Client-side entrypoint and core logic for AutoTotem.
- * Handles keybind, health checks, and item swapping.
+ * Handles keybind toggle, health checks, and item swapping.
  */
 public class AutoTotemClient implements ClientModInitializer {
-    private static KeyBinding autoTotemKeybind;
-    // Stores the slot ID (9-44) of the item that was swapped *out* of the off-hand, so we can swap it back.
+    private static KeyMapping autoTotemKeybind;
+
+    // Whether the automatic swapping feature is currently enabled
+    private static boolean enabled = true;
+
+    // Stores the slot ID (9-44) of the item that was swapped *out* of the off-hand
     private static int previousOffhandSlot = -1;
-    private static boolean manualSwap = false; // Flag to indicate a keybind-triggered swap
 
     // Constants for health thresholds (2 hearts = 4 health, 5 hearts = 10 health)
     private static final float SWAP_IN_HEALTH = 4.0F;
     private static final float SWAP_OUT_HEALTH = 10.0F;
 
-    // Slot index for the off-hand in the PlayerScreenHandler (slot ID 40)
+    // Slot index for the off-hand in the player inventory screen handler
     private static final int OFFHAND_SLOT_ID = 40;
 
-    // FIX: Define the custom keybind category using the Identifier of the translation key.
-    // The Identifier is automatically converted to the appropriate Text component for display.
-    private static final KeyBinding.Category AUTO_TOTEM_CATEGORY =
-            new KeyBinding.Category(Identifier.of(AutoTotem.MOD_ID, "general")); // <-- FIXED LINE
+    private static final KeyMapping.Category AUTO_TOTEM_CATEGORY =
+            KeyMapping.Category.register(Identifier.fromNamespaceAndPath(AutoTotem.MOD_ID, "general"));
 
     @Override
     public void onInitializeClient() {
@@ -43,12 +45,11 @@ public class AutoTotemClient implements ClientModInitializer {
     }
 
     private void registerKeybind() {
-        // Pass the KeyBinding.Category OBJECT
-        autoTotemKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.autototem.toggle", // Translation key from en_us.json
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_V, // Default key V
-                AUTO_TOTEM_CATEGORY // Pass the Category OBJECT
+        autoTotemKeybind = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.autototem.toggle",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_V,
+                AUTO_TOTEM_CATEGORY
         ));
     }
 
@@ -56,143 +57,90 @@ public class AutoTotemClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) return;
 
-            // 1. Handle Manual (Keybind) Swap
-            while (autoTotemKeybind.wasPressed()) {
-                manualSwap = true; // Set flag for keybind activation
-                performAutoTotemSwap(client);
+            // Toggle enable/disable on key press
+            while (autoTotemKeybind.consumeClick()) {
+                enabled = !enabled;
+
+                // Show status in chat
+                String status = enabled ? "§aEnabled" : "§cDisabled";
+
+                // FIXED: Removed the second 'boolean' parameter. sendOverlayMessage only takes the Component.
+                client.player.sendOverlayMessage(
+                        net.minecraft.network.chat.Component.literal("AutoTotem: " + status)
+                );
+
+                AutoTotem.LOGGER.info("AutoTotem toggled: {}", enabled ? "Enabled" : "Disabled");
             }
 
-            // 2. Handle Automatic (Health-based) Swap
-            if (client.player.isAlive()) {
+            // Only run automatic swapping when the feature is enabled
+            if (enabled && client.player.isAlive()) {
                 handleHealthBasedSwap(client);
             }
 
-            // Reset state if player dies or logs out
-            if (!client.player.isAlive() || client.world == null) {
+            // Reset state if player dies or leaves the world
+            if (!client.player.isAlive() || client.level == null) {
                 previousOffhandSlot = -1;
-                manualSwap = false;
             }
         });
     }
 
-    /**
-     * Finds the first Totem of Undying in the inventory (excluding the off-hand).
-     * @return The screen handler slot index of the Totem (9-44), or -1 if none is found.
-     */
-    private int findTotemSlot(MinecraftClient client) {
-        PlayerInventory inventory = client.player.getInventory();
-        // Iterate through all 36 main inventory slots (0-35)
-        for (int i = 0; i < PlayerInventory.MAIN_SIZE; i++) {
-            if (inventory.getStack(i).isOf(Items.TOTEM_OF_UNDYING)) {
-                // Convert inventory index (0-35) to screen handler slot ID (9-44)
-                // Hotbar 0-8 maps to screen handler slots 36-44
-                // Inventory 9-35 maps to screen handler slots 9-35
+    private int findTotemSlot(Minecraft client) {
+        Inventory inventory = client.player.getInventory();
+        for (int i = 0; i < Inventory.INVENTORY_SIZE; i++) {
+            if (inventory.getItem(i).is(Items.TOTEM_OF_UNDYING)) {
                 return i < 9 ? i + 36 : i;
             }
         }
         return -1;
     }
 
-    /**
-     * Transfers an item from an inventory slot to the off-hand slot (slot ID 40).
-     * @param client The Minecraft client instance.
-     * @param sourceSlot The screen handler slot ID of the item to move (9-44).
-     * @param recordOriginalSlot Whether to record the original slot of the item being *swapped out* of the off-hand.
-     */
-    private void swapItems(MinecraftClient client, int sourceSlot, boolean recordOriginalSlot) {
-        if (client.player == null || client.interactionManager == null) return;
+    private void swapItems(Minecraft client, int sourceSlot, boolean recordOriginalSlot) {
+        if (client.player == null || client.gameMode == null) return;
 
-        // Step 1: Record the slot the item came from if we need to swap back later
         if (recordOriginalSlot) {
-            // We store the slot the totem came from as the slot to swap back to.
             previousOffhandSlot = sourceSlot;
         }
 
-        // Step 2: Use the SWAP action. This simulates swapping the item in the source slot
-        // with the item in the secondary slot (off-hand, 40).
-        client.interactionManager.clickSlot(
-                client.player.currentScreenHandler.syncId,
+        client.gameMode.handleContainerInput(
+                client.player.containerMenu.containerId,
                 sourceSlot,
-                OFFHAND_SLOT_ID, // Secondary slot (off-hand) for SWAP type
-                SlotActionType.SWAP,
+                OFFHAND_SLOT_ID,
+                ContainerInput.SWAP,
                 client.player
         );
         AutoTotem.LOGGER.info("Performed Totem Swap from slot {} to off-hand.", sourceSlot);
     }
 
-    /**
-     * Transfers the item back from the off-hand to its original slot.
-     * @param client The Minecraft client instance.
-     */
-    private void swapBackItems(MinecraftClient client) {
-        if (client.player == null || client.interactionManager == null || previousOffhandSlot == -1) return;
+    private void swapBackItems(Minecraft client) {
+        if (client.player == null || client.gameMode == null || previousOffhandSlot == -1) return;
 
-        // previousOffhandSlot holds the original slot ID (9-44) of the item that was swapped out.
-        // We simulate a swap action between the off-hand (40) and the original slot.
-
-        client.interactionManager.clickSlot(
-                client.player.currentScreenHandler.syncId,
+        client.gameMode.handleContainerInput(
+                client.player.containerMenu.containerId,
                 OFFHAND_SLOT_ID,
-                previousOffhandSlot, // Secondary slot (original slot) for SWAP type
-                SlotActionType.SWAP,
+                previousOffhandSlot,
+                ContainerInput.SWAP,
                 client.player
         );
         AutoTotem.LOGGER.info("Performed Auto-Swap Back to original slot {}.", previousOffhandSlot);
-        previousOffhandSlot = -1; // Reset state
-        manualSwap = false; // Reset manual flag
+        previousOffhandSlot = -1;
     }
 
-    /**
-     * Core logic for keybind-triggered swap.
-     * Toggles the totem into the off-hand.
-     */
-    private void performAutoTotemSwap(MinecraftClient client) {
-        PlayerInventory inventory = client.player.getInventory();
-
-        boolean isOffhandTotem = inventory.getStack(OFFHAND_SLOT_ID).isOf(Items.TOTEM_OF_UNDYING);
-        int totemSlotId = findTotemSlot(client);
-
-        if (isOffhandTotem) {
-            // Totem is in off-hand. Swap it back to the original slot if known.
-            if (previousOffhandSlot != -1) {
-                swapBackItems(client);
-            }
-        } else {
-            // Totem is NOT in off-hand. Find one and swap it in.
-            if (totemSlotId != -1) {
-                // When manually swapping, we *do* want to record the item currently in off-hand
-                // so the next manual keypress can swap it back.
-                swapItems(client, totemSlotId, true);
-            }
-        }
-    }
-
-    /**
-     * Handles the health-based automatic swap logic.
-     */
-    private void handleHealthBasedSwap(MinecraftClient client) {
-        PlayerInventory inventory = client.player.getInventory();
+    private void handleHealthBasedSwap(Minecraft client) {
+        Inventory inventory = client.player.getInventory();
         float health = client.player.getHealth();
 
-        boolean isOffhandTotem = inventory.getStack(OFFHAND_SLOT_ID).isOf(Items.TOTEM_OF_UNDYING);
+        boolean isOffhandTotem = inventory.getItem(OFFHAND_SLOT_ID).is(Items.TOTEM_OF_UNDYING);
         int totemSlotId = findTotemSlot(client);
 
-        // --- Auto-Swap IN (Health < 2 hearts) ---
+        // Auto-Swap IN (health ≤ 2 hearts)
         if (health <= SWAP_IN_HEALTH && !isOffhandTotem && totemSlotId != -1) {
-            // Only auto-swap in if no manual swap is pending (to avoid conflicts)
-            if (!manualSwap) {
-                // Find a totem and swap the current off-hand item (if any) out
-                swapItems(client, totemSlotId, true); // Record the original item slot
-            }
+            swapItems(client, totemSlotId, true);
             return;
         }
 
-        // --- Auto-Swap BACK (Health > 5 hearts) ---
-        // Check if a totem is still in the off-hand AND we have a slot to swap back to.
+        // Auto-Swap BACK (health > 5 hearts)
         if (isOffhandTotem && previousOffhandSlot != -1 && health > SWAP_OUT_HEALTH) {
-            if (!manualSwap) {
-                swapBackItems(client); // Swap the totem back with the recorded item.
-            }
+            swapBackItems(client);
         }
     }
 }
