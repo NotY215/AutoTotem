@@ -72,6 +72,6 @@ All behaviour is controlled by the keybind and the built-in health thresholds (2
 ## 📄 License
 
 This project is licensed under the **GNU General Public License v3.0**.  
-See the [LICENSE](LICENSE) file for details.
+See the [![License: GPL v3](https://img.shields.io/badge/License--orange)](https://github.com/NotY215/AutoTotem/blob/master/LICENSE)) file for details.
 
 ---
