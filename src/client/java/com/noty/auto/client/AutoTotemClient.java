@@ -12,7 +12,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.Items;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Client-side entrypoint and core logic for AutoTotem.
@@ -45,10 +44,11 @@ public class AutoTotemClient implements ClientModInitializer {
     }
 
     private void registerKeybind() {
+        // FIXED: Changed Type.KEYSYM to Type.KEYBOARD to reflect the new SDL input wrapper
         autoTotemKeybind = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.autototem.toggle",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_V,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_V,
                 AUTO_TOTEM_CATEGORY
         ));
     }
@@ -64,7 +64,6 @@ public class AutoTotemClient implements ClientModInitializer {
                 // Show status in chat
                 String status = enabled ? "§aEnabled" : "§cDisabled";
 
-                // FIXED: Removed the second 'boolean' parameter. sendOverlayMessage only takes the Component.
                 client.player.sendOverlayMessage(
                         net.minecraft.network.chat.Component.literal("AutoTotem: " + status)
                 );

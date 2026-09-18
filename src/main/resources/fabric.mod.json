@@ -12,7 +12,7 @@
     "issues": "https://github.com/NotY215/AutoTotem/issues",
     "sources": "https://github.com/NotY215/AutoTotem"
   },
-  "license": "MIT",
+  "license": "GPL-3.0",
   "icon": "assets/autototem/icon.png",
   "environment": "client",
   "entrypoints": {
