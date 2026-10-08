@@ -92,3 +92,13 @@ See the [LICENSE](LICENSE) file for details.
 - **Modrinth**: [https://modrinth.com/user/NotY215](https://modrinth.com/user/NotY215)
 - **Issues**: [https://github.com/NotY215/AutoTotem/issues](https://github.com/NotY215/AutoTotem/issues)
 - **Source**: [https://github.com/NotY215/AutoTotem](https://github.com/NotY215/AutoTotem)
+
+## Project policies
+
+- [Contributing](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security](SECURITY.md)
+- [Support](SUPPORT.md)
+- [Citation](CITATION.cff)
+- [Governance](GOVERNANCE.md)
+- [License](LICENSE)
