@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: "AutoTotem"
+message: "If you use AutoTotem, please cite this repository."
+type: software
+authors:
+  - given-names: Shreyas
+    family-names: Mishra
+    affiliation: NotY215
+repository-code: "https://github.com/NotY215/AutoTotem"
+url: "https://github.com/NotY215/AutoTotem"
+license: "GPL-3.0"
+version: "1.5.0"
